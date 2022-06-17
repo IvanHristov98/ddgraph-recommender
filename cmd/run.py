@@ -1,7 +1,7 @@
 from os import environ
 from pathlib import Path
 
-import ddgraph.graph.parser as parse
+import ddgraph.graph as graph
 
 
 class Config:
@@ -13,9 +13,9 @@ class Config:
 
 def main():
     cfg = _config()
-    parser = parse.MovieLensParser(cfg.ml_100k_dir())
+    parser = graph.MovieLensParser(cfg.ml_100k_dir())
 
-    graph = parser.parse()
+    g = parser.parse()
 
 
 def _config() -> Config:

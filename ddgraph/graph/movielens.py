@@ -1,17 +1,11 @@
-import chunk
 import re
 from pathlib import Path
-from typing import List, NamedTuple, Tuple
+
+import ddgraph.graph.graph as graph
 
 
 LIKES = "likes"
 DISLIKES = "dislikes"
-
-
-class UserItemGraph:
-    # item offset is the adj_list length
-    adj_list: List[List[Tuple[int, int]]]
-    relationships: List[str]
 
 
 class MovieLensParser:
@@ -40,7 +34,7 @@ class MovieLensParser:
         self._data_path = data_path
         self._item_id_offset = 0
 
-    def parse(self) -> UserItemGraph:    
+    def parse(self) -> graph.UserItemGraph:    
         self._item_id_offset = self._num_users()
 
         udata = self._udata()
@@ -77,14 +71,14 @@ class MovieLensParser:
         
         return offset
 
-    def _user_item_graph(self, udata: str) -> UserItemGraph:        
-        graph = UserItemGraph()
-        graph.relationships = [LIKES, DISLIKES]
-        graph.adj_list = []
+    def _user_item_graph(self, udata: str) -> graph.UserItemGraph:        
+        g = graph.UserItemGraph()
+        g.relationships = [LIKES, DISLIKES]
+        g.adj_list = []
 
         # TODO: Find better syntactic sugar.
         for _ in range(self._item_id_offset):
-            graph.adj_list.append([])
+            g.adj_list.append([])
 
         relationship_indices = {LIKES: 0, DISLIKES: 1}
 
@@ -101,9 +95,9 @@ class MovieLensParser:
             rating = int(chunks[self._UDATA_RATING_POS])
             label = self._rating_to_label(rating)
             
-            graph.adj_list[user_id].append((relationship_indices[label], item_id))
+            g.adj_list[user_id].append((relationship_indices[label], item_id))
 
-        return graph
+        return g
 
     def _rating_to_label(self, rating: int) -> str:
         if rating >= 4:

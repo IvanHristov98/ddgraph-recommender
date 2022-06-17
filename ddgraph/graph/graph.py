@@ -1,19 +1,7 @@
-from typing import NamedTuple
-
-import numpy as np
+from typing import List, Tuple
 
 
-class User(NamedTuple):
-    metadata: str
-
-
-class Item(NamedTuple):
-    name: str
-
-
-# class EntityEmbeddings:
-#     def __init__(self, user_embeddings, item_embeddings) -> None:
-#         self._user_count = len(user_embeddings)
-#         self._embeddings = user_embeddings + item_embeddings
-        
-#         print(self._embeddings)
+class UserItemGraph:
+    # item offset is the adj_list length
+    adj_list: List[List[Tuple[int, int]]]
+    relationships: List[str]
