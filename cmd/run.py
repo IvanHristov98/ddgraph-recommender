@@ -1,7 +1,12 @@
+import logging
 from os import environ
 from pathlib import Path
+import torch
+
+import torch.utils.data as torch_data
 
 import ddgraph.graph as graph
+import ddgraph.transe as transe
 
 
 class Config:
@@ -12,10 +17,22 @@ class Config:
 
 
 def main():
+    logging.getLogger().setLevel(logging.INFO)
+    
     cfg = _config()
     parser = graph.MovieLensParser(cfg.ml_100k_dir())
 
-    g = parser.parse()
+    dataset = parser.parse()
+    training_loader = torch_data.DataLoader(dataset, batch_size=64, shuffle=True)
+
+    model = transe.TranseModel(dataset.entities_len(), dataset.rel_len(), k=50)
+    # TODO: Tweak params using grid search to find hyperparameters.
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
+    
+    trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)
+    
+    for i in range(10):
+        trainer.train_one_epoch()
 
 
 def _config() -> Config:
