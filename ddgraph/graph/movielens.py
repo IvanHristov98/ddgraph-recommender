@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 from typing import List, Tuple
-from urllib.parse import uses_fragment
 
 import ddgraph.graph.graph as graph
 
@@ -31,15 +30,14 @@ class MovieLensParser:
     def __init__(self, data_path: Path) -> None:
         self._data_path = data_path
 
-    def parse(self) -> graph.UserItemGraph:
-        g = graph.UserItemGraph()
-        g.relationships = [LIKES, DISLIKES]
-        g.user_entities = self._user_entities()
-        g.item_entities = self._item_entities()
+    def parse(self) -> graph.TripletDataset:
+        relationships = [LIKES, DISLIKES]
+        user_entities = self._user_entities()
+        item_entities = self._item_entities()
         
-        g.adj_list = self._adj_list(len(g.user_entities))
+        adj_list = self._adj_list(len(user_entities))
 
-        return g
+        return graph.TripletDataset(adj_list, relationships, user_entities, item_entities)
 
     def _user_entities(self) -> str:
         entities = []
