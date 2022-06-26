@@ -1,9 +1,11 @@
 from os import environ
 from pathlib import Path
+import torch
 
 import torch.utils.data as torch_data
 
 import ddgraph.graph as graph
+import ddgraph.transe as transe
 
 
 class Config:
@@ -23,13 +25,11 @@ def main():
     
     train_features = next(iter(train_dataloader))
     
-    print(f"Feature batch shape: {train_features.size()}")
-    # print(f"Lables batch shape: {train_labels.size()}")
-    
-    print(train_features[0])
-    
-    corrupted_triplet = g.corrupted_counterpart(train_features[0])
-    print(corrupted_triplet)
+    model = transe.TranseModel(num_entities=5, num_rels=5, k=3)
+    print(model)
+
+    dist = model(torch.tensor([0, 2, 4])).item()
+    print(dist)
 
 
 def _config() -> Config:

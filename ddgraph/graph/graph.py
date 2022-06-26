@@ -61,7 +61,7 @@ class TripletDataset(torch_data.Dataset):
             corrupted_entity_idx = random.randint(len(self._user_entities), len(self._user_entities) + len(self._item_entities))
 
         corrupted_triplet = torch.clone(triplet)
-        
+
         # To pick a triplet side toss the coin:
         # ---> Heads
         if random.randint(0, 1) == 0:

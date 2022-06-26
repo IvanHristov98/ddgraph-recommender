@@ -1,1 +1,1 @@
-from ddgraph.transe.transe import LatentGraph # noqa
+from ddgraph.transe.transe import TranseModel # noqa
