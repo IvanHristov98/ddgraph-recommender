@@ -1,3 +1,4 @@
+import logging
 from os import environ
 from pathlib import Path
 import torch
@@ -16,20 +17,22 @@ class Config:
 
 
 def main():
+    logging.getLogger().setLevel(logging.INFO)
+    
     cfg = _config()
     parser = graph.MovieLensParser(cfg.ml_100k_dir())
 
-    g = parser.parse()
-    
-    train_dataloader = torch_data.DataLoader(g, batch_size=64, shuffle=True)
-    
-    train_features = next(iter(train_dataloader))
-    
-    model = transe.TranseModel(num_entities=5, num_rels=5, k=3)
-    print(model)
+    dataset = parser.parse()
+    training_loader = torch_data.DataLoader(dataset, batch_size=64, shuffle=True)
 
-    dist = model(torch.tensor([0, 2, 4])).item()
-    print(dist)
+    model = transe.TranseModel(dataset.entities_len(), dataset.rel_len(), k=50)
+    # TODO: Tweak params using grid search to find hyperparameters.
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
+    
+    trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)
+    
+    for i in range(10):
+        trainer.train_one_epoch()
 
 
 def _config() -> Config:

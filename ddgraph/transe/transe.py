@@ -1,7 +1,11 @@
 import math
+import logging
 from typing import Tuple
 
 import torch
+import torch.utils.data as torch_data
+
+import ddgraph.graph as graph
 
 
 class TranseModel(torch.nn.Module):
@@ -12,17 +16,18 @@ class TranseModel(torch.nn.Module):
         self.rel_embeddings = self._rel_embeddings(num_rels, k)
 
     def forward(self, x):
-        head_emb = self.entity_embeddings(x[0])
-        rel_emb = self.rel_embeddings(x[1])
-        tail_emb = self.entity_embeddings(x[2])
+        head_emb = self.entity_embeddings(x[:, 0])
+        rel_emb = self.rel_embeddings(x[:, 1])
+        tail_emb = self.entity_embeddings(x[:, 2])
 
-        return (head_emb + rel_emb - tail_emb).pow(2).sum(0).sqrt()
+        return (head_emb + rel_emb - tail_emb).pow(2).sum(1).sqrt()
 
     def _entity_embeddings(self, num_entities: int, k: int) -> torch.nn.Embedding:
         high, low = self._initial_boundaries(k)
         entity_tensor = (high - low) * torch.rand(num_entities, k) + low
 
-        return torch.nn.Embedding.from_pretrained(entity_tensor, freeze=False)
+        # Normalize entity embeddings to prevent a trivial optimisation of the loss function.
+        return torch.nn.Embedding.from_pretrained(entity_tensor, freeze=False, max_norm=1)
 
     def _rel_embeddings(self, num_rels: int, k: int) -> torch.nn.Embedding:
         high, low = self._initial_boundaries(k)
@@ -37,87 +42,57 @@ class TranseModel(torch.nn.Module):
         return -6.0 / math.sqrt(k), 6.0 / math.sqrt(k)
 
 
+class Trainer:
+    _training_loader: torch_data.DataLoader
+    _triplet_dataset: graph.TripletDataset
+    _optimizer: torch.optim.Optimizer
+    _model: TranseModel
+    _margin: float
+    _epoch: int
 
-# class LatentGraph:
-#     entity_embeddings: List[np.ndarray]
-#     label_embeddings: List[np.ndarray]
+    def __init__(
+        self, 
+        training_loader: torch_data.DataLoader,
+        triplet_dataset: graph.TripletDataset,
+        optimizer: torch.optim.Optimizer,
+        model: TranseModel,
+        margin: float,
+    ) -> None:
+        self._training_loader = training_loader
+        self._triplet_dataset = triplet_dataset
+        self._optimizer = optimizer
+        self._model = model
+        self._margin = margin
 
-
-# def init_latent_graph(g: graph.UserItemGraph, dim_count: int) -> LatentGraph:
-#     lg = LatentGraph()
-#     lg.entity_embeddings = []
+        self._epoch = 0
     
-#     for _ in range(len(g.user_entities) + len(g.item_entities)):
-#         lg.entity_embeddings.append(_init_embedding(dim_count))
+    def train_one_epoch(self) -> None:
+        self._epoch += 1
+        minibatch_count = 0
+        cum_loss = 0
 
-#     lg.label_embeddings = []
+        # Sample a minibatch of triplets on each turn.
+        for _, triplets in enumerate(self._training_loader):
+            self._optimizer.zero_grad()
+            
+            corrupted_triplets = self._triplet_dataset.corrupted_counterparts(triplets)
+            
+            out = self._model(triplets)
+            corrupted_out = self._model(corrupted_triplets)
+            
+            loss = torch.nn.functional.relu(self._margin + out - corrupted_out).sum()
+            loss.backward()
+            
+            # Adjust learning weights
+            self._optimizer.step()
 
-#     for _ in g.relationships:
-#         embedding = _init_embedding(dim_count)
-#         length = np.linalg.norm(embedding)
-#         embedding /= length
+            cum_loss += loss / len(triplets)
+            minibatch_count += 1
         
-#         lg.label_embeddings.append(embedding)
+        logging.info(f"[Epoch {self._epoch}] Average loss ---> {cum_loss / minibatch_count}")
 
-#     return lg
+    def epoch(self) -> int:
+        return self._epoch
 
-
-# def train_minibatch(
-#     g: graph.UserItemGraph, 
-#     lg: LatentGraph, 
-#     minibatch_size: int, 
-#     margin: float = 1, 
-#     learning_rate: float = 0.01,
-# ) -> LatentGraph:
-#     # Normalize all entity embeddings.
-#     for i in lg.entity_embeddings:
-#         length = np.linalg.norm(lg.entity_embeddings[i])
-#         lg.entity_embeddings[i] /= length
-
-#     # Sample a minibatch.
-#     minibatch = _triplets_minibatch(g.adj_list, minibatch_size)
-    
-#     # Zip the minibatch triplets with corrupted counterparts.
-#     pair_minibatch = _pairs_minibatch(minibatch, lg)
-
-
-# def _init_embedding(dim_count: int) -> np.ndarray:
-#     return np.random.uniform(low=-6/math.sqrt(dim_count), high=6/math.sqrt(dim_count), size=dim_count)
-
-
-# # Note - we PROBABLY dont't care for any repetitions.
-# def _triplets_minibatch(adj_list: List[List[Tuple[int, int]]], size: int) -> List[Tuple[int, int, int]]:
-#     triplets = []
-    
-#     for i in range(size):
-#         head_idx = random.randint(0, len(adj_list) - 1)
-        
-#         # Hopefully we won't endup in an infinite cycle.
-#         if len(adj_list[head_idx]) == 0:
-#             continue
-        
-#         label, tail_idx = random.randint(0, len(adj_list[head_idx]) - 1)
-        
-#         triplets.append((head_idx, label, tail_idx))
-    
-#     return triplets
-
-
-# def _pairs_minibatch(
-#     minibatch: List[Tuple[int, int, int]], 
-#     lg: LatentGraph,
-# ) -> List[Tuple[Tuple[int, int, int], Tuple[int, int, int]]]:
-#     pair_minibatch = []
-    
-#     for h, l, t in minibatch:
-#         corrupted_entity_idx = random.randint(0, len(lg.entity_embeddings))
-
-#         # Toss the coin:
-#         # ---> Heads
-#         if random.randint(0, 1) == 0:
-#             pair_minibatch.append(((h, l, t), (corrupted_entity_idx, l, t)))
-#         # ---> Tails
-#         else:
-#             pair_minibatch.append(((h, l, t), (h, l, corrupted_entity_idx)))
-
-#     return pair_minibatch
+    def model(self) -> TranseModel:
+        return self._model

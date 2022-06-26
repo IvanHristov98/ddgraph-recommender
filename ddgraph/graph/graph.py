@@ -51,26 +51,36 @@ class TripletDataset(torch_data.Dataset):
         # the data points are triplets of <head, relationship, tail>
         return torch.tensor([head, rel, tail])
 
-    def corrupted_counterpart(self, triplet: torch.IntTensor) -> torch.IntTensor:
+    def corrupted_counterparts(self, triplets: torch.IntTensor) -> torch.IntTensor:
+        corrupted_triplets = torch.clone(triplets)
+        
+        for _, triplet in enumerate(corrupted_triplets):
+            self._corrupt(triplet)
+
+        return corrupted_triplets
+
+    def entities_len(self) -> int:
+        return len(self._user_entities) + len(self._item_entities)
+
+    def rel_len(self) -> int:
+        return len(self._relationships)
+
+    def _corrupt(self, triplet: torch.IntTensor) -> None:
         # To reduce bias toss the coin:
         # ---> User
         if random.randint(0, 1) == 0:
-            corrupted_entity_idx = random.randint(0, len(self._user_entities))
+            corrupted_entity_idx = random.randint(0, len(self._user_entities) - 1)
         # ---> Item
         else:
-            corrupted_entity_idx = random.randint(len(self._user_entities), len(self._user_entities) + len(self._item_entities))
-
-        corrupted_triplet = torch.clone(triplet)
+            corrupted_entity_idx = random.randint(len(self._user_entities), len(self._user_entities) + len(self._item_entities) - 1)
 
         # To pick a triplet side toss the coin:
         # ---> Heads
         if random.randint(0, 1) == 0:
-            corrupted_triplet[0] = corrupted_entity_idx
+            triplet[0] = corrupted_entity_idx
         # ---> Tails
         else:
-            corrupted_triplet[2] = corrupted_entity_idx
-
-        return corrupted_triplet
+            triplet[2] = corrupted_entity_idx
 
     def _get_neighbour_counts(self, adj_list: List[List[Tuple[int, int]]]) -> List[int]:
         total_triplets = 0
