@@ -65,7 +65,7 @@ class Trainer:
         self._margin = margin
 
         self._epoch = 0
-    
+
     def train_one_epoch(self) -> None:
         self._epoch += 1
         minibatch_count = 0

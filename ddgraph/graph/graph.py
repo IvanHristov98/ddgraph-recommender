@@ -59,6 +59,18 @@ class TripletDataset(torch_data.Dataset):
 
         return corrupted_triplets
 
+    def exists(self, triplet: torch.IntTensor) -> bool:
+        if triplet[0] < 0 or triplet[0] > len(self._adj_list) - 1:
+            return False
+
+        for neighbour in self._adj_list[triplet[0]]:
+            rel, tail = neighbour
+
+            if rel == triplet[1] and tail == triplet[2]:
+                return True
+
+        return False
+
     def entities_len(self) -> int:
         return len(self._user_entities) + len(self._item_entities)
 
