@@ -7,6 +7,7 @@ import torch.utils.data as torch_data
 
 import ddgraph.graph as graph
 import ddgraph.transe as transe
+import ddgraph.selector as selector
 
 
 class Config:
@@ -32,17 +33,20 @@ def main():
     trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)
     calc = transe.Calculator(dataset, sample_size=64)
 
-    metrics_bundle = calc.calculate(trainer.model())
-    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
-    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    # metrics_bundle = calc.calculate(trainer.model())
+    # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
     for i in range(10):
         trainer.train_one_epoch()
 
-    metrics_bundle = calc.calculate(trainer.model())
+    # metrics_bundle = calc.calculate(trainer.model())
     
-    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
-    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    
+    qpcs = selector.QPCSelector(dataset, model)
+    neighbours = qpcs.select_items()
 
 
 def _config() -> Config:

@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import ddgraph.graph.graph as graph
 
@@ -10,6 +10,9 @@ DISLIKES = "dislikes"
 
 
 class MovieLensParser:
+    LIKES_IDX = 0
+    DISLIKES_IDX = 1
+    
     _UDATA_SEPARATOR = " "
     _PIPE_SPLITTER = "|"
 
@@ -26,18 +29,19 @@ class MovieLensParser:
     _EXPECTED_UITEM_CHUNKS_PER_LINE = 24
     
     _data_path: Path
+    _relationships: List[str]
 
     def __init__(self, data_path: Path) -> None:
         self._data_path = data_path
+        self._relationships = [LIKES, DISLIKES]
 
     def parse(self) -> graph.TripletDataset:
-        relationships = [LIKES, DISLIKES]
         user_entities = self._user_entities()
         item_entities = self._item_entities()
         
         adj_list = self._adj_list(len(user_entities))
 
-        return graph.TripletDataset(adj_list, relationships, user_entities, item_entities)
+        return graph.TripletDataset(adj_list, self._relationships, user_entities, item_entities)
 
     def _user_entities(self) -> str:
         entities = []

@@ -1,5 +1,6 @@
 import random
-from typing import List, Tuple
+from typing import List, Set, Tuple
+from numpy import indices
 
 import torch
 import torch.utils.data as torch_data
@@ -12,7 +13,7 @@ class TripletOutBoundsError(Exception):
 
 
 class TripletDataset(torch_data.Dataset):
-    # TODO: Consider if adj_list is needed? Could I just use a list of triplets?
+    # Adjacency list is needed for QPCS.
     _adj_list: List[List[Tuple[int, int]]]
     # _neighbour_counts has the number encountered of dests in _adj_list until a head is encountered.
     # It has a len of len(adj_list) + 1 where the last item contains the total number of triplets.
@@ -74,8 +75,27 @@ class TripletDataset(torch_data.Dataset):
     def entities_len(self) -> int:
         return len(self._user_entities) + len(self._item_entities)
 
+    def item_indices(self) -> Set[int]:
+        indices = set()
+        
+        for i in range(len(self._user_entities), self.entities_len()):
+            indices.add(i)
+
+        return indices
+
+    def user_indices(self) -> Set[int]:
+        indices = set()
+        
+        for i in range(len(self._user_entities)):
+            indices.add(i)
+
+        return indices
+
     def rel_len(self) -> int:
         return len(self._relationships)
+
+    def user_neighbours(self, user: int) -> List[Tuple[int, int]]:
+        return self._adj_list[user]
 
     def _corrupt(self, triplet: torch.IntTensor) -> None:
         # To reduce bias toss the coin:
