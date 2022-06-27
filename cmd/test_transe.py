@@ -33,20 +33,16 @@ def main():
     trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)
     calc = transe.Calculator(dataset, sample_size=64)
 
-    # metrics_bundle = calc.calculate(trainer.model())
-    # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
-    # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    metrics_bundle = calc.calculate(trainer.model())
+    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
-    for i in range(10):
+    for i in range(20):
         trainer.train_one_epoch()
 
-    # metrics_bundle = calc.calculate(trainer.model())
-    
-    # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
-    # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
-    
-    qpcs = selector.QPCSelector(dataset, model)
-    neighbours = qpcs.select_items()
+    metrics_bundle = calc.calculate(trainer.model())
+    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
 
 
 def _config() -> Config:

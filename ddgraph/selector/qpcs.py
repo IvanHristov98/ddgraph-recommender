@@ -32,7 +32,7 @@ class QPCSelector:
     def select_items(self) -> Dict[int, List[int]]:
         users = self._dataset.user_indices()
         neighbours = dict()
-        
+
         for user in users:
             nu = self._select_items_for_user(user)
             neighbours[user] = nu
@@ -76,7 +76,7 @@ class QPCSelector:
     def _interacted_items(self, user: int) -> Set[int]:
         neighbours = self._dataset.user_neighbours(user)
         neighbours = list(filter(lambda neighbour: neighbour[0] == mvlens.MovieLensParser.LIKES_IDX, neighbours))
-        
+
         interacted_items = set()
         
         for neighbour in neighbours:
@@ -131,5 +131,5 @@ class QPCSelector:
                     min_dist = dist
             
             dists.append((item, min_dist))
-        
+
         return dists

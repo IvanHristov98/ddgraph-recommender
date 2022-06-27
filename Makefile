@@ -1,6 +1,10 @@
-.PHONY: run
-run:
-	$(call run_in_venv,"cmd/run.py")
+.PHONY: test-ddgraph
+test-ddgraph:
+	$(call run_in_venv,"cmd/test_ddgraph.py")
+
+.PHONY: test-transe
+test-transe:
+	$(call run_in_venv,"cmd/test_transe.py")
 
 
 # 1 - script path

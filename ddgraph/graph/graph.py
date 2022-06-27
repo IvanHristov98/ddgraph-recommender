@@ -72,6 +72,18 @@ class TripletDataset(torch_data.Dataset):
 
         return False
 
+    def add_triplets(self, triplets: torch.IntTensor) -> None:
+        for _, triplet in enumerate(triplets):
+            if triplet[0] < 0 or triplet[0] > len(self._adj_list) - 1:
+                raise TripletOutBoundsError(f"Expected head to be between 0 and {len(self._adj_list) - 1} but was {triplet[0]}")
+
+            # TODO: Add checks for consistency of relationships and tails.
+
+            self._adj_list[triplet[0]].append((triplet[1], triplet[2]))
+        
+        # Update the length of the graph
+        self._neighbour_counts = self._get_neighbour_counts(self._adj_list)
+
     def entities_len(self) -> int:
         return len(self._user_entities) + len(self._item_entities)
 
