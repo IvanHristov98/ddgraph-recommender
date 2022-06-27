@@ -22,6 +22,12 @@ class TranseModel(torch.nn.Module):
 
         return (head_emb + rel_emb - tail_emb).pow(2).sum(1).sqrt()
 
+    def entity_dist(self, a: int, b: int) -> float:
+        a_emb = self.entity_embeddings(torch.tensor(a))
+        b_emb = self.entity_embeddings(torch.tensor(b))
+
+        return (a_emb - b_emb).pow(2).sum(0).sqrt().item()
+
     def _entity_embeddings(self, num_entities: int, k: int) -> torch.nn.Embedding:
         high, low = self._initial_boundaries(k)
         entity_tensor = (high - low) * torch.rand(num_entities, k) + low

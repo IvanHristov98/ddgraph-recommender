@@ -23,6 +23,7 @@ class Calculator:
         self._dataset = dataset
         self._sample_size = sample_size
 
+    @torch.no_grad()
     def calculate(self, model: transe.TranseModel) -> MetricsBundle:
         cum_hits_at_10 = 0.0
         cum_rank = 0.0
