@@ -1,5 +1,6 @@
 import random
 from typing import List, Set, Tuple
+from numpy import indices
 
 import torch
 import torch.utils.data as torch_data
@@ -78,6 +79,14 @@ class TripletDataset(torch_data.Dataset):
         indices = set()
         
         for i in range(len(self._user_entities), self.entities_len()):
+            indices.add(i)
+
+        return indices
+
+    def user_indices(self) -> Set[int]:
+        indices = set()
+        
+        for i in range(len(self._user_entities)):
             indices.add(i)
 
         return indices

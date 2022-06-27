@@ -46,9 +46,7 @@ def main():
     # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
     qpcs = selector.QPCSelector(dataset, model)
-    nu = qpcs.select_items(0)
-    
-    print(nu)
+    neighbours = qpcs.select_items()
 
 
 def _config() -> Config:

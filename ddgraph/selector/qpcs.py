@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import torch
 
@@ -27,10 +27,21 @@ class QPCSelector:
         self._dataset = dataset
         self._num_quantiles = num_quantiles
         self._relevance_bias = relevance_bias
-    
+
+    # Returns Dict[user -> diversified_items]
+    def select_items(self) -> Dict[int, List[int]]:
+        users = self._dataset.user_indices()
+        neighbours = dict()
+        
+        for user in users:
+            nu = self._select_items_for_user(user)
+            neighbours[user] = nu
+        
+        return neighbours
+
     @torch.no_grad()
     # TODO: Implement with more epochs.
-    def select_items(self, user: int) -> List[int]:
+    def _select_items_for_user(self, user: int) -> List[int]:
         pu = self._interacted_items(user)
         cu = self._non_interacted_items(pu)
         nu = set()
@@ -60,7 +71,7 @@ class QPCSelector:
             nu.add(best_item)
             cu.remove(best_item)
 
-        return nu
+        return list(nu)
 
     def _interacted_items(self, user: int) -> Set[int]:
         neighbours = self._dataset.user_neighbours(user)
