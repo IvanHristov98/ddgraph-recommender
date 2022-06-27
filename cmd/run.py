@@ -30,9 +30,19 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
     
     trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)
+    calc = transe.Calculator(dataset, sample_size=64)
+
+    metrics_bundle = calc.calculate(trainer.model())
+    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
     for i in range(10):
         trainer.train_one_epoch()
+
+    metrics_bundle = calc.calculate(trainer.model())
+    
+    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
 
 
 def _config() -> Config:
