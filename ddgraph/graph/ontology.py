@@ -26,9 +26,6 @@ class Ontology(abc.ABC):
     def exists(self, triplet: Triplet) -> bool:
         raise NotImplementedError('')
 
-    def add_triplets(self, triplets: List[Triplet]) -> None:
-        raise NotImplementedError('')
-
     def triplets_len(self) -> int:
         raise NotImplementedError('')
 
@@ -45,6 +42,9 @@ class Ontology(abc.ABC):
 class RecOntology(Ontology):
     def __init__(self) -> None:
         pass
+
+    def add_triplets(self, triplets: List[Triplet]) -> None:
+        raise NotImplementedError('')
     
     def item_indices(self) -> Set[int]:
         raise NotImplementedError('')

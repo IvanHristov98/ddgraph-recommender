@@ -2,7 +2,6 @@ import re
 from pathlib import Path
 from typing import List, Set, Tuple
 
-import ddgraph.graph.dataset as dataset
 import ddgraph.graph.ontology as onto
 
 
@@ -198,7 +197,7 @@ class MovieLensParser:
     def _uuser(self) -> str:
         return self._read_file(self._uuser_path())
 
-    def _uuser_path(self) -> str:
+    def _uuser_path(self) -> Path:
         return Path(self._data_path, "u.user")
 
     def _item_entities(self) -> str:
@@ -217,7 +216,7 @@ class MovieLensParser:
     def _uitem(self) -> str:
         return self._read_file(self._uitem_path())
 
-    def _uitem_path(self) -> str:
+    def _uitem_path(self) -> Path:
         return Path(self._data_path, "u.item")
 
     def _udata(self) -> str:        
