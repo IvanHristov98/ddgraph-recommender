@@ -1,5 +1,6 @@
 import math
 import logging
+import random
 from typing import Tuple
 
 import torch
@@ -50,7 +51,7 @@ class TranseModel(torch.nn.Module):
 
 class Trainer:
     _training_loader: torch_data.DataLoader
-    _triplet_dataset: graph.TripletDataset
+    _onto: graph.Ontology
     _optimizer: torch.optim.Optimizer
     _model: TranseModel
     _margin: float
@@ -59,13 +60,13 @@ class Trainer:
     def __init__(
         self, 
         training_loader: torch_data.DataLoader,
-        triplet_dataset: graph.TripletDataset,
+        onto: graph.Ontology,
         optimizer: torch.optim.Optimizer,
         model: TranseModel,
         margin: float,
     ) -> None:
         self._training_loader = training_loader
-        self._triplet_dataset = triplet_dataset
+        self._onto = onto
         self._optimizer = optimizer
         self._model = model
         self._margin = margin
@@ -81,8 +82,8 @@ class Trainer:
         for _, triplets in enumerate(self._training_loader):
             self._optimizer.zero_grad()
             
-            corrupted_triplets = self._triplet_dataset.corrupted_counterparts(triplets)
-            
+            corrupted_triplets = corrupted_counterparts(self._onto, triplets)
+
             out = self._model(triplets)
             corrupted_out = self._model(corrupted_triplets)
             
@@ -102,3 +103,24 @@ class Trainer:
 
     def model(self) -> TranseModel:
         return self._model
+
+
+def corrupted_counterparts(onto: graph.Ontology, triplets: torch.IntTensor) -> torch.IntTensor:
+    corrupted_triplets = torch.clone(triplets)
+        
+    for _, triplet in enumerate(corrupted_triplets):
+        _corrupt(onto, triplet)
+
+    return corrupted_triplets
+
+
+def _corrupt(onto: graph.Ontology, triplet: torch.IntTensor) -> None:
+    corrupted_entity_idx = random.randint(0, onto.entities_len() - 1)
+
+    # To pick a triplet side toss the coin:
+    # ---> Heads
+    if random.randint(0, 1) == 0:
+        triplet[0] = corrupted_entity_idx
+    # ---> Tails
+    else:
+        triplet[2] = corrupted_entity_idx

@@ -16,20 +16,21 @@ class Calculator:
     _HEADS = 0
     _TAILS = 2
     
-    _dataset: graph.TripletDataset
+    _onto: graph.Ontology
     _sample_size: int
     
-    def __init__(self, dataset: graph.TripletDataset, sample_size: int = 256) -> None:
-        self._dataset = dataset
+    def __init__(self, onto: graph.Ontology, sample_size: int = 256) -> None:
+        self._onto = onto
         self._sample_size = sample_size
 
     @torch.no_grad()
     def calculate(self, model: transe.TranseModel) -> MetricsBundle:
         cum_hits_at_10 = 0.0
         cum_rank = 0.0
-        
+
         for _ in range(self._sample_size):
-            triplet = self._dataset[random.randint(0, len(self._dataset) - 1)]
+            raw_triplet = self._onto.get_triplet(random.randint(0, self._onto.triplets_len() - 1))
+            triplet = graph.tensorify_triplet(raw_triplet)
 
             # Corrupting heads.
             dists, original_idx = self._corrupted_dists(triplet, model, triplet_idx=self._HEADS)
@@ -56,7 +57,7 @@ class Calculator:
         # Corrupting heads.
         dists = []
 
-        for j in range(self._dataset.entities_len()):
+        for j in range(self._onto.entities_len()):
             if triplet[triplet_idx] == j:
                 original_idx = j
 
@@ -76,7 +77,7 @@ class Calculator:
         for j in closest_triplet_indices:
             corrupted_triplet[triplet_idx] = j
             
-            if self._dataset.exists(corrupted_triplet):
+            if self._onto.exists(graph.untensorify_triplet(corrupted_triplet)):
                 existing_count += 1
 
         hits_at_10 = float(existing_count) / 10.0
