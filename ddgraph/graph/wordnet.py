@@ -61,6 +61,15 @@ class WNOntology(onto.Ontology):
     def relations_len(self) -> int:
         return len(self._relationships)
 
+    def head_translations(self, head_idx: int) -> List[onto.Trans]:
+        start, end = self._head_ranges[head_idx]
+        translations = []
+        
+        for triplet in self._triplets[start:end]:
+            translations.append(onto.Trans(rel=triplet.rel, tail=triplet.tail))
+        
+        return translations
+
     def _reorder_triplets(self) -> None:
         self._triplets = sorted(self._triplets, key=lambda x: x.head)
     
@@ -130,9 +139,11 @@ class WNOntology(onto.Ontology):
 
 class WNParser:
     _data_path: Path
-    
-    def __init__(self, data_path: Path) -> None:
+    _file_name: str
+
+    def __init__(self, data_path: Path, file_name: str) -> None:
         self._data_path = data_path
+        self._file_name = file_name
 
     def parse(self) -> WNOntology:
         with open(self._train_path()) as stream:
@@ -175,4 +186,4 @@ class WNParser:
         return WNOntology(triplets, rels, entities)
 
     def _train_path(self) -> Path:
-        return Path(self._data_path, "train.txt")
+        return Path(self._data_path, self._file_name)

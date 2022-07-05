@@ -97,6 +97,9 @@ class MLRecOntology(onto.RecOntology):
     def relations_len(self) -> int:
         return len(self._relationships)
 
+    def head_translations(self, head_idx: int) -> List[onto.Trans]:
+        return self._adj_list[head_idx]
+
     def item_indices(self) -> Set[int]:
         indices = set()
         
@@ -230,10 +233,12 @@ class MovieLensParser:
     
     _data_path: Path
     _relationships: List[str]
+    _file_name: str
 
-    def __init__(self, data_path: Path) -> None:
+    def __init__(self, data_path: Path, file_name: str) -> None:
         self._data_path = data_path
         self._relationships = [LIKES, DISLIKES]
+        self._file_name = file_name
 
     def parse(self) -> MLRecOntology:
         user_entities = self._user_entities()
@@ -291,7 +296,7 @@ class MovieLensParser:
             return stream.read()
 
     def _udata_path(self) -> Path:
-        return Path(self._data_path, "u.data")
+        return Path(self._data_path, self._file_name)
 
     def _adj_list(self, user_count: int) -> List[List[onto.Trans]]:        
         udata = self._udata()
