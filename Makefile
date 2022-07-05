@@ -2,9 +2,9 @@
 test-ddgraph:
 	$(call run_in_venv,"cmd/test_ddgraph.py")
 
-.PHONY: test-transe
-test-transe:
-	$(call run_in_venv,"cmd/test_transe.py")
+.PHONY: test-trans
+test-trans:
+	$(call run_in_venv,"cmd/test_trans.py")
 
 
 # 1 - script path

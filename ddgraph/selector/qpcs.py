@@ -2,7 +2,7 @@ from typing import Dict, List, Set, Tuple
 
 import torch
 
-import ddgraph.transe as transe
+import ddgraph.transh as transh
 import ddgraph.graph as graph
 import ddgraph.graph.movielens as mvlens
 
@@ -11,7 +11,7 @@ import ddgraph.graph.movielens as mvlens
 # The class is using the naming conventions from the paper.
 class QPCSelector:
     _dataset: graph.TripletDataset
-    _model: transe.TranseModel
+    _model: transh.TranshModel
     _num_quantiles: int
     # should be a real number between 0 and 1
     _relevance_bias: float
@@ -19,7 +19,7 @@ class QPCSelector:
     def __init__(
         self, 
         dataset: graph.TripletDataset,
-        model: transe.TranseModel, 
+        model: transh.TranshModel, 
         num_quantiles: int = 4, 
         relevance_bias: float = 0.5,
     ) -> None:
