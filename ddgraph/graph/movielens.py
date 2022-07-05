@@ -19,6 +19,8 @@ class MLRecOntology(onto.RecOntology):
     _relationships: List[str]
     _user_entities: List[str]
     _item_entities: List[str]
+    _rels_hpt: List[float]
+    _rels_tph: List[float]
 
     def __init__(
         self, 
@@ -35,6 +37,9 @@ class MLRecOntology(onto.RecOntology):
         self._item_entities = item_entities
         
         self._neighbour_counts = self._get_neighbour_counts(adj_list)
+        
+        self._rels_tph = self._find_rels_tph()
+        self._rels_hpt = self._find_rels_hpt()
 
     def exists(self, triplet: onto.Triplet) -> bool:
         if not self._head_exists(triplet.head):
@@ -76,6 +81,15 @@ class MLRecOntology(onto.RecOntology):
         trans = neigbours[neighbour_idx]
 
         return onto.Triplet(head=head, rel=trans.rel, tail=trans.tail)
+
+    def corruption_probs(self, rel_idx: int) -> onto.CorruptionProbs:
+        tph = self._rels_tph[rel_idx]
+        hpt = self._rels_hpt[rel_idx]
+        
+        return onto.CorruptionProbs(
+            head=(tph/(tph + hpt)),
+            tail=(hpt/(tph + hpt))
+        )
 
     def entities_len(self) -> int:
         return len(self._user_entities) + len(self._item_entities)
@@ -145,6 +159,54 @@ class MLRecOntology(onto.RecOntology):
         # left can never become greater than right and we have a sparse representation where
         # an idx of a triplet would most probably not be found in an array but is a valid idx.
         return left
+
+    def _find_rels_tph(self) -> List[float]:
+        rels_tph = [0] * len(self._relationships)
+        
+        for i, _ in enumerate(self._relationships):
+            rels_tph[i] = self._find_mean_tph(i)
+        
+        return rels_tph
+
+    def _find_mean_tph(self, rel: int) -> float:
+        tail_counts = [0] * len(self._user_entities)
+        
+        for head, _ in enumerate(self._adj_list):
+            for _, trans in enumerate(self._adj_list[head]):
+                if trans.rel == rel:
+                    tail_counts[head] += 1
+    
+        return self._mean_of_observations(tail_counts)
+
+    def _find_rels_hpt(self) -> List[float]:
+        rels_hpt = [0] * len(self._relationships)
+        
+        for i, _ in enumerate(self._relationships):
+            rels_hpt[i] = self._find_mean_hpt(i)
+
+        return rels_hpt
+
+    def _find_mean_hpt(self, rel: int) -> float:
+        head_counts = [0] * len(self._item_entities)
+        
+        for head, _ in enumerate(self._adj_list):
+            for _, trans in enumerate(self._adj_list[head]):
+                if trans.rel == rel:
+                    head_counts[trans.tail - len(self._user_entities)] += 1
+
+        return self._mean_of_observations(head_counts)
+    
+    def _mean_of_observations(self, observations: List[int]) -> float:
+        total_observations = 0
+        num_entities_observed = 0
+        
+        for cnt in observations:
+            total_observations += cnt
+            
+            if cnt > 0:
+                num_entities_observed += 1
+
+        return total_observations / num_entities_observed
 
 
 class MovieLensParser:

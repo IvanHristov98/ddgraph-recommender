@@ -19,6 +19,11 @@ class Trans(NamedTuple):
     tail: int
 
 
+class CorruptionProbs(NamedTuple):
+    head: float
+    tail: float
+
+
 class Ontology(abc.ABC):
     def __init__(self) -> None:
         pass
@@ -30,6 +35,9 @@ class Ontology(abc.ABC):
         raise NotImplementedError('')
 
     def get_triplet(self, triplet_idx: int) -> Triplet:
+        raise NotImplementedError('')
+
+    def corruption_probs(self, rel_idx: int) -> CorruptionProbs:
         raise NotImplementedError('')
 
     def entities_len(self) -> int:

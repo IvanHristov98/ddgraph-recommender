@@ -26,6 +26,7 @@ def main():
     cfg = _config()
 
     onto = _onto(cfg)
+
     dataset = graph.TripletDataset(onto)
     training_loader = torch_data.DataLoader(dataset, batch_size=64, shuffle=True)
 

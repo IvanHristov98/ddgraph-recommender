@@ -12,6 +12,8 @@ class WNOntology(onto.Ontology):
     _head_ranges: List[Tuple[int, int]]
     _relationships: List[str]
     _entities: List[str]
+    _rels_hpt: List[float]
+    _rels_tph: List[float]
 
     def __init__(self, triplets: List[onto.Triplet], relationships: List[str], entities: List[str]) -> None:
         super().__init__()
@@ -22,6 +24,9 @@ class WNOntology(onto.Ontology):
         
         # done as an optimisation for later searches
         self._reorder_triplets()
+
+        self._rels_tph = self._find_rels_tph()
+        self._rels_hpt = self._find_rels_hpt()
 
     def exists(self, triplet: onto.Triplet) -> bool:     
         start, end = self._head_ranges[triplet.head]
@@ -39,6 +44,16 @@ class WNOntology(onto.Ontology):
 
     def get_triplet(self, triplet_idx: int) -> onto.Triplet:
         return self._triplets[triplet_idx]
+
+    # TODO: Fix code repetition
+    def corruption_probs(self, rel_idx: int) -> onto.CorruptionProbs:
+        tph = self._rels_tph[rel_idx]
+        hpt = self._rels_hpt[rel_idx]
+
+        return onto.CorruptionProbs(
+            head=(tph/(tph + hpt)),
+            tail=(hpt/(tph + hpt))
+        )
 
     def entities_len(self) -> int:
         return len(self._entities)
@@ -65,6 +80,52 @@ class WNOntology(onto.Ontology):
 
         if curr_triplet_idx != len(self._triplets):
             raise Exception("unexhausted triplets during counting per head")
+
+    def _find_rels_tph(self) -> List[float]:
+        rels_tph = [0] * len(self._relationships)
+        
+        for i, _ in enumerate(self._relationships):
+            rels_tph[i] = self._find_mean_tph(i)
+        
+        return rels_tph
+
+    def _find_mean_tph(self, rel: int) -> float:
+        tail_counts = [0] * len(self._entities)
+        
+        for _, triplet in enumerate(self._triplets):
+            if triplet.rel == rel:
+                tail_counts[triplet.head] += 1
+
+        return self._mean_of_observations(tail_counts)
+
+    def _find_rels_hpt(self) -> List[float]:
+        rels_hpt = [0] * len(self._relationships)
+        
+        for i, _ in enumerate(self._relationships):
+            rels_hpt[i] = self._find_mean_hpt(i)
+
+        return rels_hpt
+
+    def _find_mean_hpt(self, rel: int) -> float:
+        head_counts = [0] * len(self._entities)
+        
+        for _, triplet in enumerate(self._triplets):
+            if triplet.rel == rel:
+                head_counts[triplet.tail] += 1
+
+        return self._mean_of_observations(head_counts)
+
+    def _mean_of_observations(self, observations: List[int]) -> float:
+        total_observations = 0
+        num_entities_observed = 0
+        
+        for cnt in observations:
+            total_observations += cnt
+            
+            if cnt > 0:
+                num_entities_observed += 1
+
+        return total_observations / num_entities_observed
 
 
 class WNParser:
