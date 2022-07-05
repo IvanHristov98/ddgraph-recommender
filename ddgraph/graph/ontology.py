@@ -46,6 +46,9 @@ class Ontology(abc.ABC):
     def relations_len(self) -> int:
         raise NotImplementedError('')
 
+    def head_translations(self, head_idx: int) -> List[Trans]:
+        raise NotImplementedError
+
 
 class RecOntology(Ontology):
     def __init__(self) -> None:
