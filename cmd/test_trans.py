@@ -41,16 +41,22 @@ def main():
     logging.info(f"Hits@5 ---> {metrics_bundle.hits_at_5}")
     logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
     logging.info(f"Hits@20 ---> {metrics_bundle.hits_at_20}")
-    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    logging.info(f"NDCG@5 ---> {metrics_bundle.ndcg_at_5}")
+    logging.info(f"NDCG@10 ---> {metrics_bundle.ndcg_at_10}")
+    logging.info(f"NDCG@20 ---> {metrics_bundle.ndcg_at_20}")
+    logging.info(f"Mean Rank ---> {metrics_bundle.mean_rank}")
 
-    for i in range(50):
+    for _ in range(100):
         trainer.train_one_epoch()
 
     metrics_bundle = calc.calculate(trainer.model())
     logging.info(f"Hits@5 ---> {metrics_bundle.hits_at_5}")
     logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
     logging.info(f"Hits@20 ---> {metrics_bundle.hits_at_20}")
-    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    logging.info(f"NDCG@5 ---> {metrics_bundle.ndcg_at_5}")
+    logging.info(f"NDCG@10 ---> {metrics_bundle.ndcg_at_10}")
+    logging.info(f"NDCG@20 ---> {metrics_bundle.ndcg_at_20}")
+    logging.info(f"Mean Rank ---> {metrics_bundle.mean_rank}")
 
 
 def _config() -> Config:

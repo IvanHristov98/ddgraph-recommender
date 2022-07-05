@@ -1,3 +1,4 @@
+import math
 import random
 from typing import List, NamedTuple, Tuple
 
@@ -12,6 +13,9 @@ class MetricsBundle(NamedTuple):
     hits_at_5: float
     hits_at_10: float
     hits_at_20: float
+    ndcg_at_5: float
+    ndcg_at_10: float
+    ndcg_at_20: float
 
 
 class Calculator:
@@ -31,15 +35,20 @@ class Calculator:
         cum_hits_at_5 = 0.0
         cum_hits_at_10 = 0.0
         cum_hits_at_20 = 0.0
+        cum_ndcg_at_5 = 0.0
+        cum_ndcg_at_10 = 0.0
+        cum_ndcg_at_20 = 0.0
         cum_rank = 0.0
 
         for _ in range(self._sample_size):
+            # Fetching a random triplet.
             raw_triplet = self._onto.get_triplet(random.randint(0, self._onto.triplets_len() - 1))
             triplet = graph.tensorify_triplet(raw_triplet)
 
             # Corrupting tails.
             dists = self._corrupted_dists(triplet, model)
 
+            # Hits@K
             if self._is_hit_at_n(triplet, dists, n=5):
                 cum_hits_at_5 += 1
 
@@ -49,11 +58,19 @@ class Calculator:
             if self._is_hit_at_n(triplet, dists, n=20):
                 cum_hits_at_20 += 1
 
+            # NDCG@K
+            cum_ndcg_at_5 += self._ndcg_at_n(triplet, dists, n=5)
+            cum_ndcg_at_10 += self._ndcg_at_n(triplet, dists, n=10)
+            cum_ndcg_at_20 += self._ndcg_at_n(triplet, dists, n=20)
+
             cum_rank += float(self._triplet_rank(dists, raw_triplet.tail))
 
         hits_at_5 = cum_hits_at_5 / float(self._sample_size)
         hits_at_10 = cum_hits_at_10 / float(self._sample_size)
         hits_at_20 = cum_hits_at_20 / float(self._sample_size)
+        ndcg_at_5 = cum_ndcg_at_5 / float(self._sample_size)
+        ndcg_at_10 = cum_ndcg_at_10 / float(self._sample_size)
+        ndcg_at_20 = cum_ndcg_at_20 / float(self._sample_size)
         mean_rank = cum_rank / float(self._sample_size)
 
         return MetricsBundle(
@@ -61,6 +78,9 @@ class Calculator:
             hits_at_5=hits_at_5, 
             hits_at_10=hits_at_10, 
             hits_at_20=hits_at_20,
+            ndcg_at_5=ndcg_at_5,
+            ndcg_at_10=ndcg_at_10,
+            ndcg_at_20=ndcg_at_20,
         )
 
     def _corrupted_dists(self, triplet: torch.IntTensor, model: transh.TranshModel) -> List[float]:
@@ -75,7 +95,7 @@ class Calculator:
         scores = model(corrupted_triplets)
         return scores.flatten().tolist()
 
-    def _is_hit_at_n(self, triplet: torch.IntTensor, dists: List[float], n: int) -> Tuple[float, float]:
+    def _is_hit_at_n(self, triplet: torch.IntTensor, dists: List[float], n: int) -> bool:
         translations = self._onto.head_translations(triplet[self._HEADS])
         positive_tails = set()
         
@@ -88,6 +108,26 @@ class Calculator:
                 return True
 
         return False
+
+    def _ndcg_at_n(self, triplet: torch.IntTensor, dists: List[float], n: int) -> float:
+        translations = self._onto.head_translations(triplet[self._HEADS])
+        positive_tails = set()
+        
+        for trans in translations:
+            if trans.rel == triplet[1]:
+                positive_tails.add(trans.tail)
+
+        dcg = 0.0
+        idcg = 0.0
+
+        for i in self._closest_triplets_indices(dists, n):
+            # Adding 2 because of division by zero.
+            if i in positive_tails:
+                dcg += 1 / math.log2(i + 2)
+
+            idcg += 1 / math.log2(i + 2)
+
+        return dcg / idcg
 
     def _closest_triplets_indices(self, dists: List[float], n: int) -> List[int]:
         closest_triplets_indices = []
