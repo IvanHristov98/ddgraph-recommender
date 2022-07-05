@@ -6,7 +6,7 @@ import torch
 import torch.utils.data as torch_data
 
 import ddgraph.graph as graph
-import ddgraph.transe as transe
+import ddgraph.transh as transh
 
 
 class Config:
@@ -30,16 +30,16 @@ def main():
     dataset = graph.TripletDataset(onto)
     training_loader = torch_data.DataLoader(dataset, batch_size=64, shuffle=True)
 
-    model = transe.TranseModel(onto.entities_len(), onto.relations_len(), k=50)
+    model = transh.TranshModel(onto.entities_len(), onto.relations_len(), k=50)
     # TODO: Tweak params using grid search to find hyperparameters.
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
     
-    trainer = transe.Trainer(training_loader, onto, optimizer, model, margin=1)
-    calc = transe.Calculator(onto, sample_size=64)
+    trainer = transh.Trainer(training_loader, onto, optimizer, model, margin=1)
+    calc = transh.Calculator(onto, sample_size=512)
 
-    metrics_bundle = calc.calculate(trainer.model())
-    logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
-    logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
+    # metrics_bundle = calc.calculate(trainer.model())
+    # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
+    # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
     for i in range(50):
         trainer.train_one_epoch()

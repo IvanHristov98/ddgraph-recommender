@@ -6,7 +6,7 @@ import torch
 import torch.utils.data as torch_data
 
 import ddgraph.graph as graph
-import ddgraph.transe as transe
+import ddgraph.transh as transh
 import ddgraph.selector as selector
 import ddgraph.trainer as trainer
 
@@ -27,14 +27,14 @@ def main():
     dataset = parser.parse()
     training_loader = torch_data.DataLoader(dataset, batch_size=64, shuffle=True)
 
-    model = transe.TranseModel(dataset.entities_len(), dataset.rel_len(), k=50)
+    model = transh.TranshModel(dataset.entities_len(), dataset.rel_len(), k=50)
     # TODO: Tweak params using grid search to find hyperparameters.
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
     
-    transe_trainer = transe.Trainer(training_loader, dataset, optimizer, model, margin=1)    
+    transh_trainer = transh.Trainer(training_loader, dataset, optimizer, model, margin=1)    
     qpcs = selector.QPCSelector(dataset, model)
 
-    ddgraph_trainer = trainer.DDGraphTrainer(dataset, transe_trainer, qpcs)
+    ddgraph_trainer = trainer.DDGraphTrainer(dataset, transh_trainer, qpcs)
     ddgraph_trainer.train(epochs=3)
 
 

@@ -4,7 +4,7 @@ from typing import List, NamedTuple, Tuple
 import torch
 
 import ddgraph.graph as graph
-import ddgraph.transe.transe as transe
+import ddgraph.transh.transh as transh
 
 
 class MetricsBundle(NamedTuple):
@@ -24,7 +24,7 @@ class Calculator:
         self._sample_size = sample_size
 
     @torch.no_grad()
-    def calculate(self, model: transe.TranseModel) -> MetricsBundle:
+    def calculate(self, model: transh.TranshModel) -> MetricsBundle:
         cum_hits_at_10 = 0.0
         cum_rank = 0.0
 
@@ -53,7 +53,7 @@ class Calculator:
 
         return MetricsBundle(mean_rank=mean_rank, hits_at_10=hits_at_10)
 
-    def _corrupted_dists(self, triplet: torch.IntTensor, model: transe.TranseModel, part_idx: int) -> Tuple[List[float], int]:
+    def _corrupted_dists(self, triplet: torch.IntTensor, model: transh.TranshModel, part_idx: int) -> Tuple[List[float], int]:
         corrupted_triplet = torch.clone(triplet)
 
         # Corrupting heads.

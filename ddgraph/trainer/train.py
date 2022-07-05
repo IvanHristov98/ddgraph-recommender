@@ -4,20 +4,20 @@ import torch
 
 import ddgraph.graph as graph
 import ddgraph.graph.movielens as mvlens
-import ddgraph.transe as transe
+import ddgraph.transh as transh
 import ddgraph.selector as selector
 
 
 class DDGraphTrainer:
-    _TRANSE_EPOCHS_PER_EPOCH = 10
+    _TRANSH_EPOCHS_PER_EPOCH = 10
     
     _dataset: graph.TripletDataset
-    _transe_trainer: transe.Trainer
+    _transh_trainer: transh.Trainer
     _qpcs: selector.QPCSelector
     
-    def __init__(self, dataset: graph.TripletDataset, transe_trainer: transe.Trainer, qpcs: selector.QPCSelector) -> None:
+    def __init__(self, dataset: graph.TripletDataset, transh_trainer: transh.Trainer, qpcs: selector.QPCSelector) -> None:
         self._dataset = dataset
-        self._transe_trainer = transe_trainer
+        self._transh_trainer = transh_trainer
         self._qpcs = qpcs
 
     # TODO: Replace epochs with a metric-based stop criteria.
@@ -26,8 +26,8 @@ class DDGraphTrainer:
             self._train_one_epoch()
 
     def _train_one_epoch(self) -> None:
-        for _ in range(self._TRANSE_EPOCHS_PER_EPOCH):
-            self._transe_trainer.train_one_epoch()
+        for _ in range(self._TRANSH_EPOCHS_PER_EPOCH):
+            self._transh_trainer.train_one_epoch()
 
         neighbours = self._qpcs.select_items()
         

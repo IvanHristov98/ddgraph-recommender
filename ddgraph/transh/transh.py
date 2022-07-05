@@ -9,19 +9,26 @@ import torch.utils.data as torch_data
 import ddgraph.graph as graph
 
 
-class TranseModel(torch.nn.Module):
+class TranshModel(torch.nn.Module):
     def __init__(self, num_entities: int, num_rels: int, k: int):
-        super(TranseModel, self).__init__()
+        super(TranshModel, self).__init__()
 
         self.entity_embeddings = self._entity_embeddings(num_entities, k)
         self.rel_embeddings = self._rel_embeddings(num_rels, k)
+        self.hyperplane_embeddings = self._hyperplane_embeddings(num_rels, k)
 
     def forward(self, x):
-        head_emb = self.entity_embeddings(x[:, 0])
-        rel_emb = self.rel_embeddings(x[:, 1])
-        tail_emb = self.entity_embeddings(x[:, 2])
+        head = self.entity_embeddings(x[:, 0]) # batch_size x k
+        rel = self.rel_embeddings(x[:, 1]) # batch_size x k
+        tail = self.entity_embeddings(x[:, 2]) # batch_size x k
+        
+        hyper_rel = self.rel_embeddings(x[:, 1]) # batch_size x k
+        # transposed_hyperplane_emb = torch.transpose(x, dim0=0, dim1=1) # k x batch_size
 
-        return (head_emb + rel_emb - tail_emb).pow(2).sum(1).sqrt()
+        hyper_head = head - hyper_rel * torch.sum(head * hyper_rel, dim=1, keepdim=True)
+        hyper_tail = tail - hyper_rel * torch.sum(tail * hyper_rel, dim=1, keepdim=True)
+
+        return (hyper_head + rel - hyper_tail).pow(2).sum(1).sqrt()
 
     def entity_dist(self, a: int, b: int) -> float:
         a_emb = self.entity_embeddings(torch.tensor(a))
@@ -45,6 +52,13 @@ class TranseModel(torch.nn.Module):
         
         return torch.nn.Embedding.from_pretrained(rel_tensor, freeze=False)
 
+    def _hyperplane_embeddings(self, num_rels: int, k: int) -> torch.nn.Embedding:
+        high, low = self._initial_boundaries(k)
+        hyperplane_tensor = (high - low) * torch.rand(num_rels, k) + low
+        
+        # Normalize hyperplane embeddings to prevent a trivial optimisation of the loss function.
+        return torch.nn.Embedding.from_pretrained(hyperplane_tensor, freeze=False, max_norm=1)
+
     def _initial_boundaries(self, k: int) -> Tuple[float, float]:
         return -6.0 / math.sqrt(k), 6.0 / math.sqrt(k)
 
@@ -53,23 +67,29 @@ class Trainer:
     _training_loader: torch_data.DataLoader
     _onto: graph.Ontology
     _optimizer: torch.optim.Optimizer
-    _model: TranseModel
+    _model: TranshModel
     _margin: float
     _epoch: int
+    _eps: float
+    _c: float
 
     def __init__(
         self, 
         training_loader: torch_data.DataLoader,
         onto: graph.Ontology,
         optimizer: torch.optim.Optimizer,
-        model: TranseModel,
+        model: TranshModel,
         margin: float,
+        eps: float = 0.001,
+        c: float = 0.5
     ) -> None:
         self._training_loader = training_loader
         self._onto = onto
         self._optimizer = optimizer
         self._model = model
         self._margin = margin
+        self._eps = eps
+        self._c = c
 
         self._epoch = 0
 
@@ -84,12 +104,19 @@ class Trainer:
             
             corrupted_triplets = corrupted_counterparts(self._onto, triplets)
 
-            out = self._model(triplets)
-            corrupted_out = self._model(corrupted_triplets)
+            score = self._model(triplets)
+            corrupted_score = self._model(corrupted_triplets)
             
-            loss = torch.nn.functional.relu(self._margin + out - corrupted_out).sum()
+            margin_loss = torch.sum(torch.nn.functional.relu(self._margin + score - corrupted_score))
+            entity_loss = torch.sum(torch.nn.functional.relu(torch.norm(self._model.entity_embeddings.weight, p=2, dim=1, keepdim=False) ** 2 - 1))
+            
+            orth = torch.sum(self._model.hyperplane_embeddings.weight * self._model.rel_embeddings.weight, dim=1, keepdim=False) ** 2
+            rel_norm = torch.norm(self._model.rel_embeddings.weight, p=2, dim=1, keepdim=False) ** 2
+            orth_loss = torch.sum(torch.nn.functional.relu(orth/rel_norm - self._eps ** 2))
+
+            loss = margin_loss / triplets.size(dim=0) + self._c * (entity_loss/self._onto.entities_len() + orth_loss / self._onto.relations_len())
             loss.backward()
-            
+
             # Adjust learning weights
             self._optimizer.step()
 
@@ -101,7 +128,7 @@ class Trainer:
     def epoch(self) -> int:
         return self._epoch
 
-    def model(self) -> TranseModel:
+    def model(self) -> TranshModel:
         return self._model
 
 
