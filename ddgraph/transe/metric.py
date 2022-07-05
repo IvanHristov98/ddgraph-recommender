@@ -33,57 +33,45 @@ class Calculator:
             triplet = graph.tensorify_triplet(raw_triplet)
 
             # Corrupting heads.
-            dists, original_idx = self._corrupted_dists(triplet, model, triplet_idx=self._HEADS)
-            hits_at_10, rank = self._metrics_for_side(triplet, dists, original_idx, triplet_idx=self._HEADS)
-            
-            cum_hits_at_10 += hits_at_10
-            cum_rank += rank
-            
+            dists, original_idx = self._corrupted_dists(triplet, model, part_idx=self._HEADS)
+
+            if self._is_hit_at_10(dists, original_idx):
+                cum_hits_at_10 += 1
+
+            cum_rank += float(self._triplet_rank(dists, original_idx))
+
             # Corrupting tails.
-            dists, original_idx = self._corrupted_dists(triplet, model, triplet_idx=self._TAILS)
-            hits_at_10, rank = self._metrics_for_side(triplet, dists, original_idx, triplet_idx=self._TAILS)
+            dists, original_idx = self._corrupted_dists(triplet, model, part_idx=self._TAILS)
             
-            cum_hits_at_10 += hits_at_10
-            cum_rank += rank
+            if self._is_hit_at_10(dists, original_idx):
+                cum_hits_at_10 += 1
+            
+            cum_rank += float(self._triplet_rank(dists, original_idx))
 
         hits_at_10 = cum_hits_at_10 / float(self._sample_size * 2)
         mean_rank = cum_rank / float(self._sample_size * 2)
 
         return MetricsBundle(mean_rank=mean_rank, hits_at_10=hits_at_10)
 
-    def _corrupted_dists(self, triplet: torch.IntTensor, model: transe.TranseModel, triplet_idx: int) -> Tuple[List[float], int]:
+    def _corrupted_dists(self, triplet: torch.IntTensor, model: transe.TranseModel, part_idx: int) -> Tuple[List[float], int]:
         corrupted_triplet = torch.clone(triplet)
 
         # Corrupting heads.
         dists = []
 
         for j in range(self._onto.entities_len()):
-            if triplet[triplet_idx] == j:
+            if triplet[part_idx] == j:
                 original_idx = j
 
-            corrupted_triplet[triplet_idx] = j
+            corrupted_triplet[part_idx] = j
 
             dist = model(torch.unsqueeze(corrupted_triplet, dim=0)).item()
             dists.append(dist)
         
         return dists, original_idx
 
-    def _metrics_for_side(self, triplet: torch.IntTensor, dists: List[float], original_idx: int, triplet_idx: int) -> Tuple[float, float]:
-        corrupted_triplet = torch.clone(triplet)
-
-        closest_triplet_indices = self._closest_triplets_indices(dists, n=10)
-        existing_count = 0
-
-        for j in closest_triplet_indices:
-            corrupted_triplet[triplet_idx] = j
-            
-            if self._onto.exists(graph.untensorify_triplet(corrupted_triplet)):
-                existing_count += 1
-
-        hits_at_10 = float(existing_count) / 10.0
-        rank = float(self._triplet_rank(dists, original_idx))
-
-        return hits_at_10, rank
+    def _is_hit_at_10(self, dists: List[float], original_idx: int) -> Tuple[float, float]:
+        return original_idx in self._closest_triplets_indices(dists, n=10)
 
     def _closest_triplets_indices(self, dists: List[float], n: int) -> List[int]:
         closest_triplets_indices = []
