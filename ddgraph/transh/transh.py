@@ -143,10 +143,13 @@ def corrupted_counterparts(onto: graph.Ontology, triplets: torch.IntTensor) -> t
 
 def _corrupt(onto: graph.Ontology, triplet: torch.IntTensor) -> None:
     corrupted_entity_idx = random.randint(0, onto.entities_len() - 1)
+    
+    # Toss a lot of coins...
+    probs = onto.corruption_probs(triplet[1])
+    num = random.uniform(0, 1)
 
-    # To pick a triplet side toss the coin:
     # ---> Heads
-    if random.randint(0, 1) == 0:
+    if num < probs.head:
         triplet[0] = corrupted_entity_idx
     # ---> Tails
     else:

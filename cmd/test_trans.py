@@ -41,7 +41,7 @@ def main():
     # logging.info(f"Hits@10 ---> {metrics_bundle.hits_at_10}")
     # logging.info(f"Rank ---> {metrics_bundle.mean_rank}")
     
-    for i in range(50):
+    for i in range(20):
         trainer.train_one_epoch()
 
     metrics_bundle = calc.calculate(trainer.model())
